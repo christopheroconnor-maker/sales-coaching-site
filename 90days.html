@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>90-Day Snapshot — EMEA SMB Sales Coaching</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green:     #008060;
+      --green-lt:  #e3f5f0;
+      --green-dk:  #004c3f;
+      --amber:     #f59e0b;
+      --red:       #ef4444;
+      --blue:      #3b82f6;
+      --bg:        #f6f6f7;
+      --surface:   #ffffff;
+      --border:    #e1e3e5;
+      --text:      #202223;
+      --muted:     #6d7175;
+      --radius:    10px;
+    }
+
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    .site-header { background: var(--green-dk); color: #fff; padding: 24px 40px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .site-header .logo { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+    .site-header .logo span { color: #95bf47; }
+    .site-header .subtitle { font-size: 13px; opacity: 0.7; margin-top: 2px; }
+    .site-header a { color: #95bf47; font-size: 13px; text-decoration: none; border: 1px solid #95bf47; border-radius: 16px; padding: 6px 14px; white-space: nowrap; }
+    .site-header a:hover { background: #95bf47; color: var(--green-dk); }
+
+    .container { max-width: 1280px; margin: 0 auto; padding: 32px 24px 80px; }
+
+    /* ── KPI Strip ── */
+    .kpi-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 28px; }
+    .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 22px; }
+    .kpi .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+    .kpi .value { font-size: 28px; font-weight: 700; color: var(--green-dk); }
+    .kpi .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    /* ── Alert banner ── */
+    .alert-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 28px; }
+    @media (max-width: 900px) { .alert-row { grid-template-columns: 1fr; } }
+    .alert { border-radius: var(--radius); padding: 18px 20px; }
+    .alert.hot  { background: #d1fae5; border: 1px solid #6ee7b7; }
+    .alert.warn { background: #fef3c7; border: 1px solid #fcd34d; }
+    .alert.up   { background: #dbeafe; border: 1px solid #93c5fd; }
+    .alert h3 { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+    .alert.hot  h3 { color: #065f46; }
+    .alert.warn h3 { color: #92400e; }
+    .alert.up   h3 { color: #1e40af; }
+    .alert ul { padding-left: 16px; }
+    .alert li { font-size: 12.5px; line-height: 1.6; margin-bottom: 3px; }
+    .alert.hot  li { color: #065f46; }
+    .alert.warn li { color: #92400e; }
+    .alert.up   li { color: #1e40af; }
+
+    /* ── Table ── */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 24px; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { background: var(--bg); padding: 10px 12px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); border-bottom: 2px solid var(--border); white-space: nowrap; }
+    td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+    .rep-name { font-weight: 600; }
+    .sean  td { background: var(--green-lt) !important; }
+    .sean2 td { background: #f0fdf4 !important; }
+    .sean  .rep-name::after { content: " ★"; color: var(--green); }
+    .sean2 .rep-name::after { content: " ✦"; color: #10b981; }
+    .badge { display: inline-block; border-radius: 12px; padding: 2px 9px; font-size: 11px; font-weight: 600; }
+    .badge-green { background: #d1fae5; color: #065f46; }
+    .badge-amber { background: #fef3c7; color: #92400e; }
+    .badge-red   { background: #fee2e2; color: #991b1b; }
+    .trend-up   { color: #059669; font-size: 11px; font-weight: 600; }
+    .trend-down { color: #dc2626; font-size: 11px; font-weight: 600; }
+    .trend-flat { color: var(--muted); font-size: 11px; }
+
+    /* ── Charts ── */
+    .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 28px; }
+    @media (max-width: 720px) { .chart-grid { grid-template-columns: 1fr; } }
+    .chart-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+    .chart-box h3 { font-size: 13px; font-weight: 600; margin-bottom: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+
+    /* ── Section headings ── */
+    .section-heading { font-size: 18px; font-weight: 700; margin: 36px 0 16px; color: var(--green-dk); }
+    .section-heading::before { content: ''; display: inline-block; width: 4px; height: 18px; background: var(--green); border-radius: 2px; vertical-align: middle; margin-right: 10px; margin-bottom: 2px; }
+
+    /* ── Mover cards ── */
+    .movers-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 28px; }
+    .mover-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+    .mover-card .rep { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .mover-card .avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; flex-shrink: 0; }
+    .mover-card .rep-name { font-weight: 600; font-size: 15px; }
+    .mover-card .rep-sub  { font-size: 12px; color: var(--muted); }
+    .stat-row { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+    .stat-box { background: var(--bg); border-radius: 8px; padding: 10px 14px; flex: 1; min-width: 80px; }
+    .stat-box .lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 3px; }
+    .stat-box .val { font-size: 18px; font-weight: 700; }
+    .stat-box .chg { font-size: 10px; margin-top: 2px; }
+    .insight { font-size: 12.5px; color: var(--muted); line-height: 1.6; border-left: 3px solid var(--green); padding-left: 10px; }
+
+    footer { text-align: center; font-size: 12px; color: var(--muted); padding: 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+    .date-badge { display: inline-block; background: var(--green-lt); color: var(--green-dk); border-radius: 12px; padding: 4px 12px; font-size: 12px; font-weight: 600; margin-left: 8px; vertical-align: middle; }
+  </style>
+</head>
+<body>
+
+<header class="site-header">
+  <div>
+    <div class="logo"><span>Shopify</span> Sales Coaching <span class="date-badge">Last 90 Days</span></div>
+    <div class="subtitle">Live BigQuery data · Dec 2025 – Mar 2026 · 9-rep EMEA SMB cohort</div>
+  </div>
+  <a href="index.html">← Full Analysis</a>
+</header>
+
+<div class="container">
+
+  <!-- KPI Strip -->
+  <div class="kpi-strip">
+    <div class="kpi">
+      <div class="label">Cohort Revenue (90d)</div>
+      <div class="value">$9.47M</div>
+      <div class="sub">9 reps · all segments</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Deals Won (90d)</div>
+      <div class="value">205</div>
+      <div class="sub">across cohort</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Team Avg Win Rate</div>
+      <div class="value">55.5%</div>
+      <div class="sub">vs 41.9% all-time ↑</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Seán Quinn (90d)</div>
+      <div class="value" style="color:var(--green)">76.1%</div>
+      <div class="sub">35 won · 5.5 days to close</div>
+    </div>
+  </div>
+
+  <!-- Alert panels -->
+  <h2 class="section-heading">90-Day Headlines</h2>
+  <div class="alert-row">
+    <div class="alert hot">
+      <h3>🔥 On a hot streak</h3>
+      <ul>
+        <li><strong>Seán Quinn</strong> — 76.1% WR, closes in 5.5 days</li>
+        <li><strong>Dougie Marshall</strong> — 57.1% WR, close time 11.6d (was 70d)</li>
+        <li><strong>Sean Coleman</strong> — $53k avg deal, $1.60M revenue in 90d</li>
+        <li><strong>James Sheehan</strong> — 57.1% WR, 13d close, $48k avg deal</li>
+      </ul>
+    </div>
+    <div class="alert warn">
+      <h3>⚠ Needs attention</h3>
+      <ul>
+        <li><strong>Annika Jütten</strong> — 55% WR but 47.1d close (team avg: 14d)</li>
+        <li><strong>Amy Boswell</strong> — 26.3% WR still lowest despite 8d close</li>
+        <li><strong>Carlos Bernaldo</strong> — 33.7% WR, 86 deals closed but only 29 won</li>
+        <li><strong>Alberto Bagato</strong> — 37.8% WR, highest call volume (490)</li>
+      </ul>
+    </div>
+    <div class="alert up">
+      <h3>📈 Biggest movers vs all-time</h3>
+      <ul>
+        <li><strong>Dougie</strong> — WR +18pp, close time -58d ↑↑</li>
+        <li><strong>James</strong> — WR +16pp, close time -19d ↑↑</li>
+        <li><strong>Annika</strong> — WR +21pp (but close time still high)</li>
+        <li><strong>Amy</strong> — close time -31d (much faster recently)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Comparison Table -->
+  <h2 class="section-heading">90-Day Team Comparison</h2>
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Rep</th>
+            <th>Win Rate (90d)</th>
+            <th>vs All-Time</th>
+            <th>Deals Won</th>
+            <th>Revenue</th>
+            <th>Avg Deal</th>
+            <th>Days to Close</th>
+            <th>vs All-Time</th>
+            <th>Calls (90d)</th>
+            <th>Meetings</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="sean">
+            <td class="rep-name">Seán Quinn</td>
+            <td><span class="badge badge-green">76.1%</span></td>
+            <td><span class="trend-up">↑ +24pp</span></td>
+            <td><strong>35</strong></td>
+            <td>$1.58M</td>
+            <td>$45k</td>
+            <td><span class="badge badge-green">5.5</span></td>
+            <td><span class="trend-up">↑ -22d</span></td>
+            <td>123</td>
+            <td>37</td>
+          </tr>
+          <tr>
+            <td class="rep-name">James Sheehan</td>
+            <td><span class="badge badge-green">57.1%</span></td>
+            <td><span class="trend-up">↑ +16pp</span></td>
+            <td>24</td>
+            <td>$1.16M</td>
+            <td>$48k</td>
+            <td><span class="badge badge-green">13.0</span></td>
+            <td><span class="trend-up">↑ -20d</span></td>
+            <td>385</td>
+            <td>60</td>
+          </tr>
+          <tr>
+            <td class="rep-name">Dougie Marshall</td>
+            <td><span class="badge badge-green">57.1%</span></td>
+            <td><span class="trend-up">↑ +18pp</span></td>
+            <td>20</td>
+            <td>$767k</td>
+            <td>$38k</td>
+            <td><span class="badge badge-green">11.6</span></td>
+            <td><span class="trend-up">↑ -58d</span></td>
+            <td>352</td>
+            <td>98</td>
+          </tr>
+          <tr class="sean2">
+            <td class="rep-name">Sean Coleman</td>
+            <td><span class="badge badge-green">55.6%</span></td>
+            <td><span class="trend-up">↑ +12pp</span></td>
+            <td><strong>30</strong></td>
+            <td><strong>$1.60M</strong></td>
+            <td><strong>$53k</strong></td>
+            <td><span class="badge badge-green">7.3</span></td>
+            <td><span class="trend-up">↑ -22d</span></td>
+            <td>102</td>
+            <td>69</td>
+          </tr>
+          <tr>
+            <td class="rep-name">Annika Jütten</td>
+            <td><span class="badge badge-green">55.3%</span></td>
+            <td><span class="trend-up">↑ +21pp</span></td>
+            <td>26</td>
+            <td>$1.14M</td>
+            <td>$44k</td>
+            <td><span class="badge badge-red">47.1</span></td>
+            <td><span class="trend-down">↓ +5d</span></td>
+            <td>430</td>
+            <td>103</td>
+          </tr>
+          <tr>
+            <td class="rep-name">Pierre Mazollier</td>
+            <td><span class="badge badge-amber">50.0%</span></td>
+            <td><span class="trend-flat">→ flat</span></td>
+            <td>3</td>
+            <td>$98k</td>
+            <td>$33k</td>
+            <td><span class="badge badge-green">5.0</span></td>
+            <td><span class="trend-up">↑ -46d</span></td>
+            <td>189</td>
+            <td>84</td>
+          </tr>
+          <tr>
+            <td class="rep-name">Alberto Bagato</td>
+            <td><span class="badge badge-amber">37.8%</span></td>
+            <td><span class="trend-up">↑ +6pp</span></td>
+            <td>17</td>
+            <td>$609k</td>
+            <td>$36k</td>
+            <td><span class="badge badge-green">11.6</span></td>
+            <td><span class="trend-up">↑ -41d</span></td>
+            <td>490</td>
+            <td>247</td>
+          </tr>
+          <tr>
+            <td class="rep-name">Carlos Bernaldo</td>
+            <td><span class="badge badge-red">33.7%</span></td>
+            <td><span class="trend-down">↓ -4pp</span></td>
+            <td>29</td>
+            <td>$1.40M</td>
+            <td>$48k</td>
+            <td><span class="badge badge-amber">17.4</span></td>
+            <td><span class="trend-up">↑ -29d</span></td>
+            <td>345</td>
+            <td>146</td>
+          </tr>
+          <tr>
+            <td class="rep-name">Amy Boswell</td>
+            <td><span class="badge badge-red">26.3%</span></td>
+            <td><span class="trend-down">↓ -2pp</span></td>
+            <td>21</td>
+            <td>$1.13M</td>
+            <td>$54k</td>
+            <td><span class="badge badge-green">8.1</span></td>
+            <td><span class="trend-up">↑ -31d</span></td>
+            <td>314</td>
+            <td>139</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <h2 class="section-heading">90-Day Performance Charts</h2>
+  <div class="chart-grid">
+    <div class="chart-box">
+      <h3>Win Rate — 90d vs All-Time (%)</h3>
+      <canvas id="chartWinRate" height="280"></canvas>
+    </div>
+    <div class="chart-box">
+      <h3>Revenue Won — Last 90 Days ($)</h3>
+      <canvas id="chartRevenue" height="280"></canvas>
+    </div>
+    <div class="chart-box">
+      <h3>Days to Close — 90d vs All-Time</h3>
+      <canvas id="chartClose" height="280"></canvas>
+    </div>
+    <div class="chart-box">
+      <h3>Calls Used vs Deals Won (90d)</h3>
+      <canvas id="chartEfficiency" height="280"></canvas>
+    </div>
+  </div>
+
+  <!-- Individual mover spotlights -->
+  <h2 class="section-heading">Rep Spotlights — What's Changed</h2>
+  <div class="movers-grid">
+
+    <!-- Seán Quinn -->
+    <div class="mover-card">
+      <div class="rep">
+        <div class="avatar" style="background:#d1fae5;color:#065f46;">SQ</div>
+        <div><div class="rep-name">Seán Quinn</div><div class="rep-sub">Efficiency Benchmark ★</div></div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-box"><div class="lbl">Win Rate</div><div class="val" style="color:var(--green)">76.1%</div><div class="chg trend-up">↑ from 52%</div></div>
+        <div class="stat-box"><div class="lbl">Close Time</div><div class="val" style="color:var(--green)">5.5d</div><div class="chg trend-up">↑ from 28d</div></div>
+        <div class="stat-box"><div class="lbl">Revenue</div><div class="val">$1.58M</div><div class="chg">90 days</div></div>
+      </div>
+      <p class="insight">Seán is in exceptional form. 76.1% win rate with only 123 calls is elite efficiency — he's averaging 3.5 calls per deal won. The 5.5-day close time means he's getting commitments within the first week of engagement. Nothing to change; share his recent call recordings with the team.</p>
+    </div>
+
+    <!-- Sean Coleman -->
+    <div class="mover-card">
+      <div class="rep">
+        <div class="avatar" style="background:#ccfbf1;color:#0f766e;">SC</div>
+        <div><div class="rep-name">Sean Coleman</div><div class="rep-sub">Volume Benchmark ✦</div></div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-box"><div class="lbl">Win Rate</div><div class="val" style="color:var(--green)">55.6%</div><div class="chg trend-up">↑ from 44%</div></div>
+        <div class="stat-box"><div class="lbl">Avg Deal</div><div class="val" style="color:var(--green)">$53k</div><div class="chg trend-up">↑ from $40k</div></div>
+        <div class="stat-box"><div class="lbl">Revenue</div><div class="val" style="color:var(--green)">$1.60M</div><div class="chg">highest 90d</div></div>
+      </div>
+      <p class="insight">Coleman's 90-day numbers are his best yet — highest revenue of any rep ($1.60M), largest average deal size ($53k), and improved win rate. He's using fewer calls (102 vs historical average) but closing larger deals. His deal quality is improving significantly.</p>
+    </div>
+
+    <!-- Dougie Marshall -->
+    <div class="mover-card">
+      <div class="rep">
+        <div class="avatar" style="background:#d1fae5;color:#065f46;">DM</div>
+        <div><div class="rep-name">Dougie Marshall</div><div class="rep-sub">Biggest mover 📈</div></div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-box"><div class="lbl">Win Rate</div><div class="val" style="color:var(--green)">57.1%</div><div class="chg trend-up">↑ from 39%</div></div>
+        <div class="stat-box"><div class="lbl">Close Time</div><div class="val" style="color:var(--green)">11.6d</div><div class="chg trend-up">↑ from 70d</div></div>
+        <div class="stat-box"><div class="lbl">Deals Won</div><div class="val">20</div><div class="chg">in 90d</div></div>
+      </div>
+      <p class="insight">Dougie has made the biggest improvement on the team. His close cycle dropped from 70 days (all-time) to 11.6 days — he's clearly learned to stop talking after the close signal and ask for the decision. Win rate up 18pp. This is what good coaching looks like in the data.</p>
+    </div>
+
+    <!-- James Sheehan -->
+    <div class="mover-card">
+      <div class="rep">
+        <div class="avatar" style="background:#fef3c7;color:#92400e;">JS</div>
+        <div><div class="rep-name">James Sheehan</div><div class="rep-sub">Strong recent form</div></div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-box"><div class="lbl">Win Rate</div><div class="val" style="color:var(--green)">57.1%</div><div class="chg trend-up">↑ from 41%</div></div>
+        <div class="stat-box"><div class="lbl">Close Time</div><div class="val" style="color:var(--green)">13.0d</div><div class="chg trend-up">↑ from 33d</div></div>
+        <div class="stat-box"><div class="lbl">Revenue</div><div class="val">$1.16M</div><div class="chg">90 days</div></div>
+      </div>
+      <p class="insight">James has had a strong 90 days — win rate up 16pp, close time down from 33 to 13 days. He's still running more calls than the benchmarks (385 vs Coleman's 102) but the quality is improving. Continue working on converting ROI moments into decisions without further explanation.</p>
+    </div>
+
+    <!-- Annika Jütten -->
+    <div class="mover-card">
+      <div class="rep">
+        <div class="avatar" style="background:#e0f2fe;color:#0369a1;">AJ</div>
+        <div><div class="rep-name">Annika Jütten</div><div class="rep-sub">WR up, close time a concern</div></div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-box"><div class="lbl">Win Rate</div><div class="val" style="color:var(--green)">55.3%</div><div class="chg trend-up">↑ from 34%</div></div>
+        <div class="stat-box"><div class="lbl">Close Time</div><div class="val" style="color:var(--red)">47.1d</div><div class="chg trend-down">↓ +5d worse</div></div>
+        <div class="stat-box"><div class="lbl">Deals Won</div><div class="val">26</div><div class="chg">in 90d</div></div>
+      </div>
+      <p class="insight">Mixed picture: win rate has shot up 21pp (huge improvement in deal quality), but close time is 47 days — 4x the team average of 14 days and the only rep getting slower. The pipeline is filling with strong prospects but the commit isn't being captured in the meeting. Focus: close in the call, not after it.</p>
+    </div>
+
+    <!-- Amy Boswell -->
+    <div class="mover-card">
+      <div class="rep">
+        <div class="avatar" style="background:#fde68a;color:#92400e;">AB</div>
+        <div><div class="rep-name">Amy Boswell</div><div class="rep-sub">Close time improved, WR still key</div></div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-box"><div class="lbl">Win Rate</div><div class="val" style="color:var(--red)">26.3%</div><div class="chg trend-down">↓ still low</div></div>
+        <div class="stat-box"><div class="lbl">Close Time</div><div class="val" style="color:var(--green)">8.1d</div><div class="chg trend-up">↑ from 40d</div></div>
+        <div class="stat-box"><div class="lbl">Avg Deal</div><div class="val">$54k</div><div class="chg trend-up">↑ largest on team</div></div>
+      </div>
+      <p class="insight">Amy's close time has improved dramatically (40d → 8d) — she's getting decisions faster when she gets to a closeable deal. Her average deal size of $54k is the highest on the team this quarter. The persistent issue is win rate at 26.3% — the pipeline still contains too many unqualifiable deals. Fix qualification, not activity.</p>
+    </div>
+
+    <!-- Carlos Bernaldo -->
+    <div class="mover-card">
+      <div class="rep">
+        <div class="avatar" style="background:#fce7f3;color:#9d174d;">CB</div>
+        <div><div class="rep-name">Carlos Bernaldo</div><div class="rep-sub">Volume, needs win rate focus</div></div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-box"><div class="lbl">Win Rate</div><div class="val" style="color:var(--red)">33.7%</div><div class="chg trend-down">↓ -4pp</div></div>
+        <div class="stat-box"><div class="lbl">Deals Closed</div><div class="val">86</div><div class="chg">but 29 won</div></div>
+        <div class="stat-box"><div class="lbl">Avg Deal</div><div class="val">$48k</div><div class="chg">strong quality</div></div>
+      </div>
+      <p class="insight">Carlos closed 86 deals in 90 days — the most of any rep — but won only 29 (33.7%). Deal quality when he wins is strong ($48k avg). The 57 lost deals represent significant wasted pipeline. He's running the most overall activity with the lowest win rate — the pipeline qualification problem is acute this quarter.</p>
+    </div>
+
+    <!-- Alberto Bagato -->
+    <div class="mover-card">
+      <div class="rep">
+        <div class="avatar" style="background:#dbeafe;color:#1e40af;">AB</div>
+        <div><div class="rep-name">Alberto Bagato</div><div class="rep-sub">Improving, high volume concern</div></div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-box"><div class="lbl">Win Rate</div><div class="val" style="color:var(--amber)">37.8%</div><div class="chg trend-up">↑ from 32%</div></div>
+        <div class="stat-box"><div class="lbl">Close Time</div><div class="val" style="color:var(--green)">11.6d</div><div class="chg trend-up">↑ from 53d</div></div>
+        <div class="stat-box"><div class="lbl">Calls Used</div><div class="val" style="color:var(--red)">490</div><div class="chg">highest 90d</div></div>
+      </div>
+      <p class="insight">Alberto is improving — win rate up, close time dramatically faster. But he still has the highest call volume in the 90-day period (490 calls), ahead of even Annika. 17 wins from 490 calls is 3.5% call-to-win efficiency. Qualification is the lever: the same energy on fewer, better-qualified deals would yield materially better results.</p>
+    </div>
+
+    <!-- Pierre Mazollier -->
+    <div class="mover-card">
+      <div class="rep">
+        <div class="avatar" style="background:#ede9fe;color:#5b21b6;">PM</div>
+        <div><div class="rep-name">Pierre Mazollier</div><div class="rep-sub">Win rate strong, volume critical</div></div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-box"><div class="lbl">Win Rate</div><div class="val" style="color:var(--amber)">50.0%</div><div class="chg trend-flat">→ unchanged</div></div>
+        <div class="stat-box"><div class="lbl">Close Time</div><div class="val" style="color:var(--green)">5.0d</div><div class="chg trend-up">↑ -46d</div></div>
+        <div class="stat-box"><div class="lbl">Deals Won</div><div class="val" style="color:var(--red)">3</div><div class="chg">in 90d</div></div>
+      </div>
+      <p class="insight">Pierre's close time has collapsed to 5.0 days — matching Seán Quinn's level — and his win rate holds at 50%. But 3 deals won in 90 days means the pipeline feeding his close machine is near-empty. The urgency is to increase qualified pipeline volume: his conversion mechanics are working, the top of funnel isn't.</p>
+    </div>
+
+  </div>
+
+</div>
+
+<footer>
+  Live BigQuery data · Last 90 days (Dec 2025 – Mar 2026) · 9-rep EMEA SMB cohort · Updated March 2026
+</footer>
+
+<script>
+  // Order: by 90d win rate descending
+  // Seán Q, James, Dougie, Coleman, Annika, Pierre, Alberto, Carlos, Amy
+  const REPS   = ['Seán Q','James','Dougie','S. Coleman','Annika','Pierre','Alberto','Carlos','Amy'];
+  const COLORS = ['#008060','#f59e0b','#6366f1','#10b981','#06b6d4','#8b5cf6','#3b82f6','#ec4899','#ef4444'];
+  const COLORS_A = COLORS.map(c => c + 'cc');
+
+  // Win Rate — 90d vs all-time grouped
+  new Chart(document.getElementById('chartWinRate'), {
+    type: 'bar',
+    data: {
+      labels: REPS,
+      datasets: [
+        { label: '90-Day', data: [76.1, 57.1, 57.1, 55.6, 55.3, 50.0, 37.8, 33.7, 26.3], backgroundColor: COLORS_A, borderColor: COLORS, borderWidth: 1.5, borderRadius: 4 },
+        { label: 'All-Time', data: [52.1, 41.0, 38.9, 43.7, 34.1, 50.0, 31.7, 37.4, 28.0], backgroundColor: '#e5e7eb', borderColor: '#9ca3af', borderWidth: 1, borderRadius: 4 }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: true, position: 'top', labels: { font: { size: 11 } } } },
+      scales: {
+        x: { grid: { color: '#f0f0f0' }, ticks: { font: { size: 10 }, maxRotation: 35 } },
+        y: { max: 100, grid: { color: '#f0f0f0' }, ticks: { callback: v => v + '%', font: { size: 11 } } }
+      }
+    }
+  });
+
+  // Revenue 90d
+  new Chart(document.getElementById('chartRevenue'), {
+    type: 'bar',
+    data: {
+      labels: REPS,
+      datasets: [{ label: 'Revenue', data: [1577837, 1159671, 766888, 1595386, 1135905, 98195, 609261, 1396787, 1127769],
+        backgroundColor: COLORS_A, borderColor: COLORS, borderWidth: 1.5, borderRadius: 4 }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: '#f0f0f0' }, ticks: { font: { size: 10 }, maxRotation: 35 } },
+        y: { grid: { color: '#f0f0f0' }, ticks: { callback: v => '$' + (v/1000).toFixed(0) + 'k', font: { size: 11 } } }
+      }
+    }
+  });
+
+  // Days to close — 90d vs all-time
+  new Chart(document.getElementById('chartClose'), {
+    type: 'bar',
+    data: {
+      labels: REPS,
+      datasets: [
+        { label: '90-Day', data: [5.5, 13.0, 11.6, 7.3, 47.1, 5.0, 11.6, 17.4, 8.1], backgroundColor: COLORS_A, borderColor: COLORS, borderWidth: 1.5, borderRadius: 4 },
+        { label: 'All-Time', data: [27.5, 32.5, 69.6, 29.7, 41.7, 50.8, 52.8, 46.1, 39.5], backgroundColor: '#e5e7eb', borderColor: '#9ca3af', borderWidth: 1, borderRadius: 4 }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: true, position: 'top', labels: { font: { size: 11 } } } },
+      scales: {
+        x: { grid: { color: '#f0f0f0' }, ticks: { font: { size: 10 }, maxRotation: 35 } },
+        y: { grid: { color: '#f0f0f0' }, ticks: { callback: v => v + 'd', font: { size: 11 } } }
+      }
+    }
+  });
+
+  // Calls vs deals won (efficiency scatter-style bar)
+  new Chart(document.getElementById('chartEfficiency'), {
+    type: 'bar',
+    data: {
+      labels: REPS,
+      datasets: [
+        { label: 'Calls Used', data: [123, 385, 352, 102, 430, 189, 490, 345, 314], backgroundColor: '#e5e7eb', borderColor: '#9ca3af', borderWidth: 1, borderRadius: 4 },
+        { label: 'Deals Won ×10', data: [350, 240, 200, 300, 260, 30, 170, 290, 210], backgroundColor: COLORS_A, borderColor: COLORS, borderWidth: 1.5, borderRadius: 4 }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: true, position: 'top', labels: { font: { size: 11 } } },
+        tooltip: { callbacks: { label: (ctx) => ctx.datasetIndex === 1 ? `Deals Won: ${Math.round(ctx.raw/10)}` : `Calls: ${ctx.raw}` } }
+      },
+      scales: {
+        x: { grid: { color: '#f0f0f0' }, ticks: { font: { size: 10 }, maxRotation: 35 } },
+        y: { grid: { color: '#f0f0f0' }, ticks: { font: { size: 11 } } }
+      }
+    }
+  });
+</script>
+</body>
+</html>
